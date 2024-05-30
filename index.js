@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -27,6 +27,7 @@ async function run() {
 
     const menuCollection = client.db('bistroDB').collection('menu');
     const reviewsCollection = client.db('bistroDB').collection('reviews');
+    const cartCollection = client.db('bistroDB').collection('carts');
 
     // read and show  menu data on the UI
     app.get('/menu', async(req, res) => {
@@ -34,10 +35,37 @@ async function run() {
         res.send(result);
     });
 
+
     // read and show reviews data on the UI
     app.get('/reviews', async(req, res) => {
         const result = await reviewsCollection.find().toArray();
         res.send(result);
+    });
+
+
+    // read carts collection for all user
+    app.get('/carts', async(req, res) => {
+      const email = req.query.email;
+      const query = {email: email}
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
+
+
+    // delete specific cart data
+    app.delete('/carts/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id)};
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
+    })
+
+
+    // post to the cart collection by user
+    app.post('/carts', async(req, res) => {
+      const cartItem = req.body;
+      const result = await cartCollection.insertOne(cartItem);
+      res.send(result);
     })
 
     // Connect the client to the server	(optional starting in v4.7)
