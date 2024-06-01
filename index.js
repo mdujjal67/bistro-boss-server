@@ -25,9 +25,54 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
 
+    const userCollection = client.db('bistroDB').collection('users');
     const menuCollection = client.db('bistroDB').collection('menu');
     const reviewsCollection = client.db('bistroDB').collection('reviews');
     const cartCollection = client.db('bistroDB').collection('carts');
+
+
+    // user related api
+
+    app.get('/users', async(req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+
+    app.delete('/users/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id)};
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+
+
+    app.patch('/users/admin/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id)};
+      const updatedDoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+
+
+    app.post('/users', async(req, res) => {
+      const user = req.body;
+      // insert email if user doesn't exists
+      // It can be done many ways(1. email unique, 2. upsert, 3. simple checking)
+      const query = {email: user.email};
+      const existingUser = await userCollection.findOne(query);
+      if(existingUser){
+        return res.send({message: "user already exists."})
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
+
 
     // read and show  menu data on the UI
     app.get('/menu', async(req, res) => {
@@ -44,6 +89,13 @@ async function run() {
 
 
     // read carts collection for all user
+    app.get('/carts', async(req, res) => {
+      const result = await cartCollection.find().toArray();
+      res.send(result);
+  });
+
+
+    // read carts collection for specific user
     app.get('/carts', async(req, res) => {
       const email = req.query.email;
       const query = {email: email}
